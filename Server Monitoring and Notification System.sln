@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServerStatistics", "ServerStatistics\ServerStatistics.csproj", "{A5771D04-4D2C-46BC-9F39-FCB1B45EC574}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StatisticsCollector", "StatisticsCollector\StatisticsCollector.csproj", "{A5771D04-4D2C-46BC-9F39-FCB1B45EC574}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
