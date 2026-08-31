@@ -1,0 +1,9 @@
+﻿services:
+  statistics-collector:
+    image: statistics-collector
+    build:
+      context: .
+      dockerfile: StatisticsCollector/Dockerfile
+    environment:
+      - ServerStatisticsConfig__ServerIdentifier=docker-image
+
