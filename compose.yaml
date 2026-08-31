@@ -6,4 +6,26 @@
       dockerfile: StatisticsCollector/Dockerfile
     environment:
       - ServerStatisticsConfig__ServerIdentifier=docker-image
+      - RabbitMQOptions__HostName=rabbitmq
+      - RabbitMQOptions__Port=5672
+      - RabbitMQOptions__UserName=root
+      - RabbitMQOptions__Password=root
+      - RabbitMQOptions__VirtualHost=/
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
 
+  rabbitmq:
+    image: rabbitmq:management
+    ports:
+      - '5672:5672'
+      - '8080:15672'
+    environment:
+      - RABBITMQ_DEFAULT_USER=root
+      - RABBITMQ_DEFAULT_PASS=root
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "check_running" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
