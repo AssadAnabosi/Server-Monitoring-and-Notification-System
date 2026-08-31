@@ -39,6 +39,7 @@ public class RabbitMQPublisher : IMessagePublisher
         string routingKey,
         string bindingPattern,
         T message,
+        CancellationToken cancellationToken = default,
         bool durable = true)
     {
         // Ensure the topic exchange exists
