@@ -18,8 +18,8 @@
   rabbitmq:
     image: rabbitmq:management
     ports:
-      - '5672:5672'
-      - '8080:15672'
+      - "5672:5672"
+      - "8080:15672"
     environment:
       - RABBITMQ_DEFAULT_USER=root
       - RABBITMQ_DEFAULT_PASS=root
@@ -29,9 +29,27 @@
       timeout: 5s
       retries: 10
       start_period: 15s
-  
-  
-  
+
+  processor-and-anomaly-detector:
+    image: processor-and-anomaly-detector
+    build:
+      context: .
+      dockerfile: ProcessorAndAnomalyDetector/Dockerfile
+    environment:
+      - RabbitMQOptions__HostName=rabbitmq
+      - RabbitMQOptions__Port=5672
+      - RabbitMQOptions__UserName=root
+      - RabbitMQOptions__Password=root
+      - RabbitMQOptions__VirtualHost=/
+      - MongoDbOptions__ConnectionString=mongodb://root:root@mongo:27017/?authSource=admin
+      - MongoDbOptions__Database=base
+      - MongoDbOptions__Collection=serverStatistics
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+
   mongo:
     image: mongo
     restart: always
