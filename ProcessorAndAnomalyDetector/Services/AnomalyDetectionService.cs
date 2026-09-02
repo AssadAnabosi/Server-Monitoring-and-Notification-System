@@ -1,9 +1,14 @@
-﻿using ProcessorAndAnomalyDetector.Models;
+﻿using Microsoft.Extensions.Options;
+using ProcessorAndAnomalyDetector.Models;
 
 namespace ProcessorAndAnomalyDetector.Services;
 
-public class AnomalyDetectionService(AnomalyDetectionConfig config, IServerStatisticsService service)
+public class AnomalyDetectionService(
+    IOptions<AnomalyDetectionConfig> config,
+    IServerStatisticsService service)
 {
+    private readonly AnomalyDetectionConfig _config = config.Value;
+
     public async Task HandleAsync(ServerStatistics serverStatistics, CancellationToken cancellationToken)
     {
         var previousServerStatistics =
@@ -17,25 +22,25 @@ public class AnomalyDetectionService(AnomalyDetectionConfig config, IServerStati
 
     private bool IsMemoryHighUsage(double currentMemoryUsage, double currentAvailableMemory)
     {
-        var memoryUsageThresholdPercentage = config.MemoryUsageAnomalyThresholdPercentage;
+        var memoryUsageThresholdPercentage = _config.MemoryUsageAnomalyThresholdPercentage;
         return currentMemoryUsage / (currentMemoryUsage + currentAvailableMemory) > memoryUsageThresholdPercentage;
     }
 
     private bool IsMemoryUsageAnomaly(double currentMemoryUsage, double previousMemoryUsage)
     {
-        var memoryUsageThresholdPercentage = config.MemoryUsageAnomalyThresholdPercentage;
+        var memoryUsageThresholdPercentage = _config.MemoryUsageAnomalyThresholdPercentage;
         return currentMemoryUsage > previousMemoryUsage * (1 + memoryUsageThresholdPercentage);
     }
 
     private bool IsCpuHighUsage(double currentCpuUsage)
     {
-        var cpuUsageThresholdPercentage = config.CpuUsageAnomalyThresholdPercentage;
-        return (currentCpuUsage > cpuUsageThresholdPercentage * 100);
+        var cpuUsageThresholdPercentage = _config.CpuUsageAnomalyThresholdPercentage;
+        return currentCpuUsage > cpuUsageThresholdPercentage * 100;
     }
 
     private bool IsCpuUsageAnomaly(double currentCpuUsage, double previousCpuUsage)
     {
-        var cpuUsageAnomalyThresholdPercentage = config.CpuUsageAnomalyThresholdPercentage;
+        var cpuUsageAnomalyThresholdPercentage = _config.CpuUsageAnomalyThresholdPercentage;
         return currentCpuUsage > previousCpuUsage * (1 + cpuUsageAnomalyThresholdPercentage);
     }
 
@@ -51,10 +56,11 @@ public class AnomalyDetectionService(AnomalyDetectionConfig config, IServerStati
         {
             Console.WriteLine("HighCpuUsage");
         }
+
         Console.WriteLine("Detecting Anomalies...");
         if (previousServerStatistics is null)
             return;
-        
+
         if (IsMemoryUsageAnomaly(serverStatistics.MemoryUsage, previousServerStatistics.MemoryUsage))
         {
             Console.WriteLine("MemoryUsageAnomaly");

@@ -1,4 +1,5 @@
-﻿using MongoDB.Driver;
+﻿using Microsoft.Extensions.Options;
+using MongoDB.Driver;
 using ProcessorAndAnomalyDetector.Models;
 
 namespace ProcessorAndAnomalyDetector.Repositories;
@@ -7,9 +8,9 @@ public sealed class ServerStatisticsRepository : IServerStatisticsRepository
 {
     private readonly IMongoCollection<ServerStatistics>? _collection;
 
-    public ServerStatisticsRepository(MongoDbOptions options)
+    public ServerStatisticsRepository(IOptions<MongoDbOptions> mongoOptions)
     {
-        ArgumentNullException.ThrowIfNull(options);
+        var options = mongoOptions.Value;
         _collection = ConnectToDatabase(options);
     }
 

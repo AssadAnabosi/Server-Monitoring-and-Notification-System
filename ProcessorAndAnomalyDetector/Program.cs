@@ -1,67 +1,35 @@
 ﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using ProcessorAndAnomalyDetector.Models;
 using ProcessorAndAnomalyDetector.Repositories;
 using ProcessorAndAnomalyDetector.Services;
 using RabbitMQClientLibrary;
-using RabbitMQClientLibrary.Interfaces;
 
-var configuration = new ConfigurationBuilder()
-    .SetBasePath(AppContext.BaseDirectory)
-    .AddJsonFile("appsettings.json", optional: true)
-    .AddEnvironmentVariables()
-    .Build();
+var builder = Host.CreateApplicationBuilder(args);
 
-var rabbitMQOptions = configuration
-    .GetSection(RabbitMQOptions.SectionName)
-    .Get<RabbitMQOptions>() ?? new RabbitMQOptions();
+builder.Configuration
+    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables();
 
-var mongoOptions = configuration
-    .GetSection(MongoDbOptions.SectionName)
-    .Get<MongoDbOptions>() ?? new MongoDbOptions();
+builder.Services
+    .AddOptions<RabbitMQOptions>()
+    .Bind(builder.Configuration.GetSection(RabbitMQOptions.SectionName));
 
-var anomalyDetectionConfig = configuration
-    .GetSection(AnomalyDetectionConfig.SectionName)
-    .Get<AnomalyDetectionConfig>() ?? throw new InvalidOperationException(
-    $"Missing configuration section '{AnomalyDetectionConfig.SectionName}'.");
+builder.Services
+    .AddOptions<MongoDbOptions>()
+    .Bind(builder.Configuration.GetSection(MongoDbOptions.SectionName));
 
-Console.WriteLine(anomalyDetectionConfig);
+builder.Services
+    .AddOptions<AnomalyDetectionConfig>()
+    .Bind(builder.Configuration.GetSection(AnomalyDetectionConfig.SectionName))
+    .Validate(c => c is not null, $"Missing configuration section '{AnomalyDetectionConfig.SectionName}'.");
 
-IServerStatisticsRepository repository = new ServerStatisticsRepository(mongoOptions);
-var service = new ServerStatisticsService(repository);
-var handler = new AnomalyDetectionService(anomalyDetectionConfig, service);
 
-var exchangeName = "statistics-exchange";
-var queueName = "statistics-collector-queue";
-var bindingPattern = "ServerStatistics.*";
+builder.Services.AddSingleton<IServerStatisticsRepository, ServerStatisticsRepository>();
+builder.Services.AddSingleton<IServerStatisticsService, ServerStatisticsService>();
+builder.Services.AddSingleton<AnomalyDetectionService>();
+builder.Services.AddHostedService<StatisticsConsumerHostedService>();
 
-await using IMessageConsumer consumer = await RabbitMQConsumer.CreateAsync(rabbitMQOptions);
-
-using var cts = new CancellationTokenSource();
-Console.CancelKeyPress += (_, e) =>
-{
-    e.Cancel = true;
-    cts.Cancel();
-};
-
-Console.WriteLine($"Listening for messages on exchange '{exchangeName}', queue '{queueName}'...");
-
-var consumerTag = await consumer.ConsumeAsync<ServerStatistics>(
-    exchange: exchangeName,
-    queueName: queueName,
-    bindingPattern: bindingPattern,
-    handler: handler.HandleAsync,
-    cancellationToken: cts.Token,
-    durable: true,
-    prefetchCount: 10,
-    autoAck: false);
-
-Console.WriteLine($"Consumer started with tag: {consumerTag}");
-
-try
-{
-    await Task.Delay(Timeout.Infinite, cts.Token);
-}
-catch (OperationCanceledException)
-{
-    Console.WriteLine("Stopping consumer...");
-}
+var host = builder.Build();
+await host.RunAsync();
