@@ -4,5 +4,7 @@ namespace ProcessorAndAnomalyDetector.Repositories;
 
 public interface IServerStatisticsRepository
 {
-    Task InsertAsync(ServerStatisticsEntity entity, CancellationToken cancellationToken);
+    Task InsertAsync(ServerStatistics entity, CancellationToken cancellationToken);
+
+    Task<ServerStatistics?> GetRecentEventAsync(string serverIdentifier, CancellationToken cancellationToken);
 }

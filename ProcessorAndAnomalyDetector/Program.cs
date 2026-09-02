@@ -1,8 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
-using MongoDB.Driver;
-using ProcessorAndAnomalyDetector;
 using ProcessorAndAnomalyDetector.Models;
 using ProcessorAndAnomalyDetector.Repositories;
+using ProcessorAndAnomalyDetector.Services;
 using RabbitMQClientLibrary;
 using RabbitMQClientLibrary.Interfaces;
 
@@ -20,14 +19,16 @@ var mongoOptions = configuration
     .GetSection(MongoDbOptions.SectionName)
     .Get<MongoDbOptions>() ?? new MongoDbOptions();
 
+var anomalyDetectionConfig = configuration
+    .GetSection(AnomalyDetectionConfig.SectionName)
+    .Get<AnomalyDetectionConfig>() ?? throw new InvalidOperationException(
+    $"Missing configuration section '{AnomalyDetectionConfig.SectionName}'.");
+
+Console.WriteLine(anomalyDetectionConfig);
+
 IServerStatisticsRepository repository = new ServerStatisticsRepository(mongoOptions);
-var handler = new ServerStatisticsMessageHandler(repository);
-
-
-var mongoClient = new MongoClient(mongoOptions.ConnectionString);
-var collection = mongoClient
-    .GetDatabase(mongoOptions.Database)
-    .GetCollection<ServerStatisticsEntity>(mongoOptions.Collection);
+var service = new ServerStatisticsService(repository);
+var handler = new AnomalyDetectionService(anomalyDetectionConfig, service);
 
 var exchangeName = "statistics-exchange";
 var queueName = "statistics-collector-queue";
@@ -44,7 +45,7 @@ Console.CancelKeyPress += (_, e) =>
 
 Console.WriteLine($"Listening for messages on exchange '{exchangeName}', queue '{queueName}'...");
 
-var consumerTag = await consumer.ConsumeAsync<StatisticsCollector.Models.ServerStatistics>(
+var consumerTag = await consumer.ConsumeAsync<ServerStatistics>(
     exchange: exchangeName,
     queueName: queueName,
     bindingPattern: bindingPattern,

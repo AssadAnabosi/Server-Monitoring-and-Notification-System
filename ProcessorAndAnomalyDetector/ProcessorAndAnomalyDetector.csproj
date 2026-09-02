@@ -23,7 +23,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\RabbitMQClientLibrary\RabbitMQClientLibrary.csproj" />
-      <ProjectReference Include="..\StatisticsCollector\StatisticsCollector.csproj" />
     </ItemGroup>
 
 </Project>
