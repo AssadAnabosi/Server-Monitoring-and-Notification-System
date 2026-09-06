@@ -50,6 +50,8 @@
         condition: service_healthy
       mongo:
         condition: service_healthy
+      signalr-hub:
+        condition: service_healthy
 
   mongo:
     image: mongo
@@ -88,3 +90,18 @@
       dockerfile: SignalRHub/Dockerfile
     ports:
       - "5188:5188"
+    healthcheck:
+      test: [ "CMD-SHELL", "bash -c '</dev/tcp/localhost/5188' || exit 1" ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  sinalr-event-consumer:
+    image: sinalr-event-consumer
+    build:
+      context: .
+      dockerfile: SignalREventConsumer/Dockerfile
+    depends_on:
+      signalr-hub:
+        condition: service_healthy

@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SignalRClientLibrary", "Sig
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SignalRHub", "SignalRHub\SignalRHub.csproj", "{BC0F76E9-CF44-46F0-8303-B687C3AA8932}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SignalREventConsumer", "SignalREventConsumer\SignalREventConsumer.csproj", "{0070CFDE-EC58-4A92-885C-E7ED4B4F3886}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -85,6 +87,18 @@ Global
 		{BC0F76E9-CF44-46F0-8303-B687C3AA8932}.Release|x64.Build.0 = Release|Any CPU
 		{BC0F76E9-CF44-46F0-8303-B687C3AA8932}.Release|x86.ActiveCfg = Release|Any CPU
 		{BC0F76E9-CF44-46F0-8303-B687C3AA8932}.Release|x86.Build.0 = Release|Any CPU
+		{0070CFDE-EC58-4A92-885C-E7ED4B4F3886}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0070CFDE-EC58-4A92-885C-E7ED4B4F3886}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0070CFDE-EC58-4A92-885C-E7ED4B4F3886}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{0070CFDE-EC58-4A92-885C-E7ED4B4F3886}.Debug|x64.Build.0 = Debug|Any CPU
+		{0070CFDE-EC58-4A92-885C-E7ED4B4F3886}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{0070CFDE-EC58-4A92-885C-E7ED4B4F3886}.Debug|x86.Build.0 = Debug|Any CPU
+		{0070CFDE-EC58-4A92-885C-E7ED4B4F3886}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0070CFDE-EC58-4A92-885C-E7ED4B4F3886}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0070CFDE-EC58-4A92-885C-E7ED4B4F3886}.Release|x64.ActiveCfg = Release|Any CPU
+		{0070CFDE-EC58-4A92-885C-E7ED4B4F3886}.Release|x64.Build.0 = Release|Any CPU
+		{0070CFDE-EC58-4A92-885C-E7ED4B4F3886}.Release|x86.ActiveCfg = Release|Any CPU
+		{0070CFDE-EC58-4A92-885C-E7ED4B4F3886}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
