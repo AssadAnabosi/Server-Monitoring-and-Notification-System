@@ -79,3 +79,11 @@
     depends_on:
       mongo:
         condition: service_healthy
+
+  signalr-hub:
+    image: signalr-hub
+    build:
+      context: .
+      dockerfile: SignalRHub/Dockerfile
+    ports:
+      - "5188:5188"
