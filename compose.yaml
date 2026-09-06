@@ -18,8 +18,8 @@
   rabbitmq:
     image: rabbitmq:management
     ports:
-      - '5672:5672'
-      - '8080:15672'
+      - "5672:5672"
+      - "8080:15672"
     environment:
       - RABBITMQ_DEFAULT_USER=root
       - RABBITMQ_DEFAULT_PASS=root
@@ -29,3 +29,53 @@
       timeout: 5s
       retries: 10
       start_period: 15s
+
+  processor-and-anomaly-detector:
+    image: processor-and-anomaly-detector
+    build:
+      context: .
+      dockerfile: ProcessorAndAnomalyDetector/Dockerfile
+    environment:
+      - RabbitMQOptions__HostName=rabbitmq
+      - RabbitMQOptions__Port=5672
+      - RabbitMQOptions__UserName=root
+      - RabbitMQOptions__Password=root
+      - RabbitMQOptions__VirtualHost=/
+      - MongoDbOptions__ConnectionString=mongodb://root:root@mongo:27017/?authSource=admin
+      - MongoDbOptions__Database=base
+      - MongoDbOptions__Collection=serverStatistics
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+
+  mongo:
+    image: mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+      MONGO_INITDB_DATABASE: base
+    healthcheck:
+      test: [ "CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      - ME_CONFIG_MONGODB_URL=mongodb://root:root@mongo:27017/
+      - ME_CONFIG_BASICAUTH_ENABLED=true
+      - ME_CONFIG_BASICAUTH_USERNAME=mongo-express-root
+      - ME_CONFIG_BASICAUTH_PASSWORD=mongo-express-root
+    depends_on:
+      mongo:
+        condition: service_healthy
