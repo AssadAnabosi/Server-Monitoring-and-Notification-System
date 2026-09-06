@@ -5,6 +5,7 @@ using ProcessorAndAnomalyDetector.Models;
 using ProcessorAndAnomalyDetector.Repositories;
 using ProcessorAndAnomalyDetector.Services;
 using RabbitMQClientLibrary;
+using SignalRClientLibrary;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -25,9 +26,13 @@ builder.Services
     .Bind(builder.Configuration.GetSection(AnomalyDetectionConfig.SectionName))
     .Validate(c => c is not null, $"Missing configuration section '{AnomalyDetectionConfig.SectionName}'.");
 
+builder.Services
+    .AddOptions<SignalRHubOptions>()
+    .Bind(builder.Configuration.GetSection(SignalRHubOptions.SectionName));
 
 builder.Services.AddSingleton<IServerStatisticsRepository, ServerStatisticsRepository>();
 builder.Services.AddSingleton<IServerStatisticsService, ServerStatisticsService>();
+builder.Services.AddSingleton<ISignalRAlertSender, SignalRAlertSender>();
 builder.Services.AddSingleton<AnomalyDetectionService>();
 builder.Services.AddHostedService<StatisticsConsumerHostedService>();
 

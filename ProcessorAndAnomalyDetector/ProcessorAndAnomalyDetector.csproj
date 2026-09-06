@@ -25,6 +25,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\RabbitMQClientLibrary\RabbitMQClientLibrary.csproj" />
+      <ProjectReference Include="..\SignalRClientLibrary\SignalRClientLibrary.csproj" />
     </ItemGroup>
 
 </Project>

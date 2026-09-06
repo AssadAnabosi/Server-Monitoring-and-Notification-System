@@ -1,6 +1,11 @@
 ﻿FROM mcr.microsoft.com/dotnet/runtime:10.0 AS base
 WORKDIR /app
 
+ENV AnomalyDetectionConfig__AnomalyDetectionConfig=0.4
+ENV AnomalyDetectionConfig__CpuUsageAnomalyThresholdPercentage=0.5
+ENV AnomalyDetectionConfig__MemoryUsageThresholdPercentage=0.8
+ENV AnomalyDetectionConfig__CpuUsageThresholdPercentage=0.9
+
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY ["ProcessorAndAnomalyDetector.csproj", "./"]

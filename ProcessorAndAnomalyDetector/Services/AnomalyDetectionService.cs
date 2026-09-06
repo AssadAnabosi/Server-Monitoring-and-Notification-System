@@ -1,11 +1,13 @@
 ﻿using Microsoft.Extensions.Options;
 using ProcessorAndAnomalyDetector.Models;
+using SignalRClientLibrary;
 
 namespace ProcessorAndAnomalyDetector.Services;
 
 public class AnomalyDetectionService(
     IOptions<AnomalyDetectionConfig> config,
-    IServerStatisticsService service)
+    IServerStatisticsService service,
+    ISignalRAlertSender alertSender)
 {
     private readonly AnomalyDetectionConfig _config = config.Value;
 
@@ -17,13 +19,7 @@ public class AnomalyDetectionService(
         Console.WriteLine($"Server statistics: {serverStatistics.ServerIdentifier}");
         await service.InsertAsync(serverStatistics, cancellationToken);
 
-        AnalyseStatistics(serverStatistics, previousServerStatistics);
-    }
-
-    private bool IsMemoryHighUsage(double currentMemoryUsage, double currentAvailableMemory)
-    {
-        var memoryUsageThresholdPercentage = _config.MemoryUsageAnomalyThresholdPercentage;
-        return currentMemoryUsage / (currentMemoryUsage + currentAvailableMemory) > memoryUsageThresholdPercentage;
+        await AnalyseStatisticsAsync(serverStatistics, previousServerStatistics, cancellationToken);
     }
 
     private bool IsMemoryUsageAnomaly(double currentMemoryUsage, double previousMemoryUsage)
@@ -34,7 +30,7 @@ public class AnomalyDetectionService(
 
     private bool IsCpuHighUsage(double currentCpuUsage)
     {
-        var cpuUsageThresholdPercentage = _config.CpuUsageAnomalyThresholdPercentage;
+        var cpuUsageThresholdPercentage = _config.CpuUsageThresholdPercentage;
         return currentCpuUsage > cpuUsageThresholdPercentage * 100;
     }
 
@@ -44,31 +40,62 @@ public class AnomalyDetectionService(
         return currentCpuUsage > previousCpuUsage * (1 + cpuUsageAnomalyThresholdPercentage);
     }
 
-    private void AnalyseStatistics(ServerStatistics serverStatistics, ServerStatistics? previousServerStatistics)
+    private async Task AnalyseStatisticsAsync(
+        ServerStatistics serverStatistics,
+        ServerStatistics? previousServerStatistics,
+        CancellationToken cancellationToken)
     {
-        Console.WriteLine("Analysing Statistics...");
-        if (IsMemoryHighUsage(serverStatistics.MemoryUsage, serverStatistics.AvailableMemory))
+        var totalMemory = serverStatistics.MemoryUsage + serverStatistics.AvailableMemory;
+        var memoryUsagePercentage = totalMemory > 0 ? serverStatistics.MemoryUsage / totalMemory : 0;
+        var cpuUsagePercentage = serverStatistics.CpuUsage / 100;
+
+        if (memoryUsagePercentage > _config.MemoryUsageThresholdPercentage ||
+            IsCpuHighUsage(serverStatistics.CpuUsage))
         {
-            Console.WriteLine("HighMemoryUsage");
+            await SendAlertAsync(
+                "High Usage Alert",
+                serverStatistics,
+                memoryUsagePercentage,
+                cpuUsagePercentage,
+                $"Usage threshold exceeded. Memory: {memoryUsagePercentage:P1}, CPU: {cpuUsagePercentage:P1}.",
+                cancellationToken);
+            Console.WriteLine("High Usage Alert");
         }
 
-        if (IsCpuHighUsage(serverStatistics.CpuUsage))
-        {
-            Console.WriteLine("HighCpuUsage");
-        }
-
-        Console.WriteLine("Detecting Anomalies...");
         if (previousServerStatistics is null)
             return;
 
-        if (IsMemoryUsageAnomaly(serverStatistics.MemoryUsage, previousServerStatistics.MemoryUsage))
+        var memoryAnomaly = IsMemoryUsageAnomaly(serverStatistics.MemoryUsage, previousServerStatistics.MemoryUsage);
+        var cpuAnomaly = IsCpuUsageAnomaly(serverStatistics.CpuUsage, previousServerStatistics.CpuUsage);
+        if (memoryAnomaly || cpuAnomaly)
         {
-            Console.WriteLine("MemoryUsageAnomaly");
+            await SendAlertAsync(
+                "Anomaly Alert",
+                serverStatistics,
+                memoryUsagePercentage,
+                cpuUsagePercentage,
+                $"Sudden increase detected in {(memoryAnomaly && cpuAnomaly ? "memory and CPU" : memoryAnomaly ? "memory" : "CPU")} usage.",
+                cancellationToken);
+            Console.WriteLine("Anomaly Alert");
         }
+    }
 
-        if (IsCpuUsageAnomaly(serverStatistics.CpuUsage, previousServerStatistics.CpuUsage))
+    private Task SendAlertAsync(
+        string type,
+        ServerStatistics statistics,
+        double memoryUsagePercentage,
+        double cpuUsagePercentage,
+        string message,
+        CancellationToken cancellationToken)
+    {
+        return alertSender.SendAsync(new AlertEvent
         {
-            Console.WriteLine("CpuUsageAnomaly");
-        }
+            Type = type,
+            ServerIdentifier = statistics.ServerIdentifier,
+            MemoryUsagePercentage = memoryUsagePercentage,
+            CpuUsagePercentage = cpuUsagePercentage,
+            Message = message,
+            Timestamp = statistics.Timestamp == default ? DateTime.UtcNow : statistics.Timestamp
+        }, cancellationToken);
     }
 }
