@@ -8,11 +8,15 @@ var configuration = new ConfigurationBuilder()
     .Build();
 
 var services = new ServiceCollection();
+services.AddSingleton<IConfiguration>(configuration);
+
 services.AddOptions<SignalRHubOptions>()
-    .Bind(configuration.GetSection(SignalRHubOptions.SectionName));
+    .BindConfiguration(SignalRHubOptions.SectionName);
+
 services.AddSingleton<SignalRAlertReceiver>();
 
 await using var provider = services.BuildServiceProvider();
+
 var receiver = provider.GetRequiredService<SignalRAlertReceiver>();
 receiver.AlertReceived += alert =>
 {

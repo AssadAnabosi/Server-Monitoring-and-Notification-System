@@ -97,8 +97,8 @@
       retries: 3
       start_period: 5s
 
-  sinalr-event-consumer:
-    image: sinalr-event-consumer
+  signalr-event-consumer:
+    image: signalr-event-consumer
     build:
       context: .
       dockerfile: SignalREventConsumer/Dockerfile
