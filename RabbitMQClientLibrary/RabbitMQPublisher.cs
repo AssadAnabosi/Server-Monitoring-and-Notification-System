@@ -5,31 +5,16 @@ using RabbitMQClientLibrary.Interfaces;
 
 namespace RabbitMQClientLibrary;
 
-public class RabbitMQPublisher : IMessagePublisher
+public class RabbitMQPublisher : RabbitMQClientBase, IMessagePublisher
 {
-    private readonly IConnection _connection;
-    private readonly IChannel _channel;
-
     private RabbitMQPublisher(IConnection connection, IChannel channel)
+        : base(connection, channel)
     {
-        _connection = connection;
-        _channel = channel;
     }
 
     public static async Task<RabbitMQPublisher> CreateAsync(RabbitMQOptions options)
     {
-        var factory = new ConnectionFactory
-        {
-            HostName = options.HostName,
-            Port = options.Port,
-            UserName = options.UserName,
-            Password = options.Password,
-            VirtualHost = options.VirtualHost
-        };
-
-        var connection = await factory.CreateConnectionAsync();
-        var channel = await connection.CreateChannelAsync();
-
+        var (connection, channel) = await OpenConnectionAsync(options);
         return new RabbitMQPublisher(connection, channel);
     }
 
@@ -42,39 +27,18 @@ public class RabbitMQPublisher : IMessagePublisher
         CancellationToken cancellationToken = default,
         bool durable = true)
     {
-        // Ensure the topic exchange exists
-        await _channel.ExchangeDeclareAsync(exchange, ExchangeType.Topic, durable: durable);
-
-        // Ensure the queue exists
-        await _channel.QueueDeclareAsync(
-            queue: queueName,
-            durable: durable,
-            exclusive: false,
-            autoDelete: false,
-            arguments: null);
-
-        // Bind the queue to the exchange using a topic pattern (e.g. "orders.*", "orders.#")
-        await _channel.QueueBindAsync(
-            queue: queueName,
-            exchange: exchange,
-            routingKey: bindingPattern);
+        await DeclareTopologyAsync(exchange, queueName, bindingPattern, durable, cancellationToken);
 
         var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message));
 
         var properties = new BasicProperties { Persistent = durable };
 
-        // Publish with the actual routing key — this is what gets matched against bindings
         await _channel.BasicPublishAsync(
             exchange: exchange,
             routingKey: routingKey,
             mandatory: false,
             basicProperties: properties,
-            body: body);
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await _channel.CloseAsync();
-        await _connection.CloseAsync();
+            body: body,
+            cancellationToken: cancellationToken);
     }
 }

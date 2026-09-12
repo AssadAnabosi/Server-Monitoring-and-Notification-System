@@ -5,28 +5,20 @@
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <RootNamespace>StatisticsCollector</RootNamespace>
     </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\SignalRClientLibrary\SignalRClientLibrary.csproj" />
+    </ItemGroup>
 
     <ItemGroup>
       <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.11" />
       <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.11" />
       <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.11" />
       <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.11" />
+      <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.11" />
       <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.11" />
-      <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.11" />
-      <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="10.0.11" />
-      <PackageReference Include="System.Management" Version="10.0.11" />
+      <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.11" />
     </ItemGroup>
 
-    <ItemGroup>
-        <None Update="appsettings.json">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-    </ItemGroup>
-
-    <ItemGroup>
-      <ProjectReference Include="..\RabbitMQClientLibrary\RabbitMQClientLibrary.csproj" />
-    </ItemGroup>
-    
 </Project>

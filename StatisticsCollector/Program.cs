@@ -1,80 +1,25 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using StatisticsCollector.Models;
 using StatisticsCollector.Utils;
 using RabbitMQClientLibrary;
-using RabbitMQClientLibrary.Interfaces;
+using StatisticsCollector;
 
-var configuration = new ConfigurationBuilder()
-    .SetBasePath(AppContext.BaseDirectory)
-    .AddJsonFile("appsettings.json", optional: true)
-    .AddEnvironmentVariables() // Overrides appsettings.json
-    .Build();
+var builder = Host.CreateApplicationBuilder(args);
 
-var serverStatisticsConfig = configuration
-    .GetSection(ServerStatisticsConfig.SectionName)
-    .Get<ServerStatisticsConfig>() ?? throw new InvalidOperationException(
-    $"Missing configuration section '{ServerStatisticsConfig.SectionName}'.");
+builder.Services
+    .AddOptions<ServerStatisticsConfig>()
+    .BindConfiguration(ServerStatisticsConfig.SectionName)
+    .Validate(c => c is not null, $"Missing configuration section '{ServerStatisticsConfig.SectionName}'.");
 
-if (serverStatisticsConfig.SamplingIntervalSeconds <= 0)
-{
-    throw new InvalidOperationException(
-        $"{nameof(ServerStatisticsConfig.SamplingIntervalSeconds)} must be greater than zero.");
-}
+builder.Services
+    .AddOptions<RabbitMQOptions>()
+    .BindConfiguration(RabbitMQOptions.SectionName);
 
-Console.WriteLine(serverStatisticsConfig);
+builder.Services.AddSingleton(_ => StatisticsCollectorFactory.CreateCollector());
+builder.Services.AddSingleton<StatisticsCollectorService>();
 
-var rabbitMQOptions = configuration
-    .GetSection(RabbitMQOptions.SectionName)
-    .Get<RabbitMQOptions>() ?? new RabbitMQOptions();
-Console.WriteLine(rabbitMQOptions);
+builder.Services.AddHostedService<StatisticsPublisherHostedService>();
 
-var statisticsCollectorStrategy = StatisticsCollectorFactory.CreateCollector();
-var statisticsCollectorService = new StatisticsCollectorService(statisticsCollectorStrategy);
-
-await using IMessagePublisher publisher = await RabbitMQPublisher.CreateAsync(rabbitMQOptions);
-
-var exchangeName = "statistics-exchange";
-var queueName = "statistics-collector-queue";
-var bindingPattern = "ServerStatistics.*";
-
-using var cts = new CancellationTokenSource();
-Console.CancelKeyPress += (_, e) =>
-{
-    e.Cancel = true;
-    cts.Cancel();
-};
-
-var timer = new PeriodicTimer(TimeSpan.FromSeconds(serverStatisticsConfig.SamplingIntervalSeconds));
-try
-{
-    do
-    {
-        await PublishOnce();
-    } while (await timer.WaitForNextTickAsync(cts.Token));
-}
-catch (OperationCanceledException)
-{
-    Console.WriteLine("Shutdown requested, exiting cleanly.");
-}
-
-async Task PublishOnce()
-{
-    try
-    {
-        var serverStatistics = statisticsCollectorService.Collect(serverStatisticsConfig.ServerIdentifier);
-
-        Console.WriteLine(serverStatistics);
-
-        await publisher.PublishAsync(
-            exchange: exchangeName,
-            queueName: queueName,
-            routingKey: $"ServerStatistics.{serverStatisticsConfig.ServerIdentifier}",
-            bindingPattern: bindingPattern,
-            message: serverStatistics,
-            cancellationToken: cts.Token);
-    }
-    catch (Exception ex) when (ex is not OperationCanceledException)
-    {
-        Console.Error.WriteLine($"[{DateTime.UtcNow:O}] Publish failed: {ex.Message}");
-    }
-}
+var host = builder.Build();
+await host.RunAsync();
